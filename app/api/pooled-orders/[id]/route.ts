@@ -6,10 +6,12 @@ import type { PooledOrderWithDetails } from "@/types/auction";
 
 export async function GET(
 	request: NextRequest,
-	{ params }: { params: { id: string } }
+	{ params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
 	try {
-		const id = parseInt(params.id);
+		// Handle both sync and async params (Next.js 15+ uses async params)
+		const resolvedParams = await Promise.resolve(params);
+		const id = parseInt(resolvedParams.id);
 		if (isNaN(id)) {
 			return errorResponse("INVALID_ID", "Invalid pooled order ID", 400);
 		}

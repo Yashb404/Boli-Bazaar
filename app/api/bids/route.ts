@@ -7,7 +7,13 @@ import type { BidWithSupplier } from "@/types/auction";
 
 export async function POST(request: NextRequest) {
 	try {
-		const body = await request.json();
+		// Parse request body - handle empty or invalid JSON
+		let body;
+		try {
+			body = await request.json();
+		} catch (parseError) {
+			return errorResponse("INVALID_JSON", "Invalid or empty JSON body", 400);
+		}
 
 		// Validate request body
 		const validatedData = submitBidSchema.parse(body);
@@ -68,26 +74,58 @@ export async function POST(request: NextRequest) {
 			201
 		);
 	} catch (error: any) {
-		console.error("Error submitting bid:", error);
-
-		// Handle validation errors
-		if (error.name === "ZodError") {
-			return errorResponse("VALIDATION_ERROR", error.errors[0].message, 400);
+		// Handle validation errors (Zod schema validation)
+		if (error?.name === "ZodError") {
+			console.error("Validation error:", error.errors);
+			return errorResponse("VALIDATION_ERROR", error.errors[0]?.message || "Invalid request data", 400);
 		}
 
-		// Handle business logic errors from bid-service
-		if (error.message) {
-			// Check for specific error messages
-			if (
-				error.message.includes("not found") ||
-				error.message.includes("not currently accepting") ||
-				error.message.includes("must be verified") ||
-				error.message.includes("must be lower")
-			) {
-				return conflictResponse(error.message);
-			}
+		// Extract error message (handle both Error objects and plain objects)
+		// Try multiple ways to get the error message
+		let errorMessage: string;
+		if (typeof error === "string") {
+			errorMessage = error;
+		} else if (error?.message) {
+			errorMessage = error.message;
+		} else if (error?.toString) {
+			errorMessage = error.toString();
+		} else {
+			errorMessage = "Unknown error occurred";
 		}
 
+		const errorMessageLower = errorMessage.toLowerCase();
+
+		// Log the error for debugging
+		console.error("Error submitting bid:", {
+			error,
+			errorMessage,
+			errorType: typeof error,
+			errorName: error?.name,
+		});
+
+		// Handle business logic errors from bid-service that should return 409 Conflict
+		// These are validation errors from the business logic layer
+		const isBusinessLogicError =
+			errorMessageLower.includes("not found") ||
+			errorMessageLower.includes("not currently accepting") ||
+			errorMessageLower.includes("must be verified") ||
+			errorMessageLower.includes("must be lower") ||
+			errorMessageLower.includes("at least") ||
+			errorMessageLower.includes("cannot award") ||
+			errorMessageLower.includes("still active") ||
+			errorMessageLower.includes("positive number") ||
+			errorMessageLower.includes("bid must");
+
+		if (isBusinessLogicError) {
+			return conflictResponse(errorMessage);
+		}
+
+		// If we get here, it's an unexpected server error
+		console.error("Unexpected error in bid submission - returning 500:", {
+			error,
+			errorMessage,
+			stack: error?.stack,
+		});
 		return serverErrorResponse("Failed to submit bid");
 	}
 }
