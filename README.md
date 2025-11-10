@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BoliBazaar – Empowering Local Vendors Through Smart Collective Sourcing  
 
-## Getting Started
+BoliBazaar is a digital procurement platform designed to strengthen **urban supply chains** by enabling street food vendors and small businesses to collectively source raw materials from trusted suppliers.  
+Through **bulk purchasing** and **transparent bidding**, the platform reduces costs, builds trust, and ensures reliable delivery—contributing to smarter and more resilient urban markets.  
+<img width="1702" height="805" alt="image" src="https://github.com/user-attachments/assets/b2b845bb-48cf-40a4-b87d-64d9af38e53f" />
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Table of Contents
+- [Overview](#overview)  
+- [Key Features](#key-features)  
+- [How It Works](#how-it-works)  
+- [Urban Impact](#urban-impact)  
+- [Tech Stack](#tech-stack)  
+- [Prototype Status](#prototype-status)    
+- [Future Scope](#future-scope)  
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Overview  
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Urban street vendors and small businesses often face:  
+- High procurement costs due to small-scale buying  
+- Unreliable suppliers and inconsistent quality  
+- Limited bargaining power in fragmented markets  
 
-## Learn More
+Suppliers also face issues such as:
+- Fragmented Demand
+- Low Market Visibility
+- Unreliable Payments & Logistics
 
-To learn more about Next.js, take a look at the following resources:
+<img width="1632" height="333" alt="image" src="https://github.com/user-attachments/assets/1156996c-ecbf-49e8-9090-156da2527d1b" />
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**BoliBazaar** addresses these issues by:  
+- Forming vendor collectives for increased bargaining power  
+- Enabling transparent, competitive bidding among suppliers  
+- Encouraging localized supply chains for efficiency and freshness  
+<img width="1576" height="766" alt="image" src="https://github.com/user-attachments/assets/324e968f-2650-4e0f-b477-c2d76766502f" />
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Key Features  
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### ✅ Verified Suppliers  
+Suppliers undergo strict verification before being allowed to sell:  
+- Business legitimacy (GST, registration compliance)  
+- Product quality standards  
+- Delivery reliability and on-time performance  
+- Vendor ratings and reviews  
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Benefit:** Reduces risk, ensures trust, and strengthens supply chain reliability.  
+
+---
+
+### 🔍 Transparent Bidding  
+When collectives place bulk orders, suppliers openly compete. Vendors can view:  
+- All participating suppliers  
+- Pricing offers  
+- Delivery timelines and guarantees  
+
+**Benefit:** Eliminates middlemen, reduces hidden costs, and gives even the smallest vendor fair access to competitive pricing.  
+
+---
+
+### 🌍 Localized Operations  
+Vendors are grouped by geographic proximity, encouraging suppliers to deliver within zones.  
+- Reduced transportation costs  
+- Faster delivery for perishable goods  
+- Simplified logistics and coordination  
+
+**Benefit:** Supports efficient, sustainable urban commerce while reducing waste and delays.  
+
+---
+<img width="1596" height="466" alt="image" src="https://github.com/user-attachments/assets/fb0d95eb-d255-4ad0-9d20-82fd296c8f83" />
+
+## How It Works  
+
+1. **Form Local Collectives**  
+   Vendors in the same area collaborate to act as one large buyer.  
+   *Example: Ten vendors in Chandni Chowk pool requirements into one consolidated order.*  
+
+2. **Create Bulk Orders**  
+   The system aggregates vendor needs (vegetables, spices, oils, packaging, etc.) into a combined request.  
+
+3. **Suppliers Compete**  
+   Verified suppliers are notified and submit competitive bids visible to all vendors.  
+
+4. **Select the Best Deal**  
+   The collective secures the supplier based on price, reliability, and reputation.  
+
+**Result:** Vendors save money, gain transparency, and ensure dependable delivery.  
+
+---
+
+## Urban Impact  
+
+BoliBazaar contributes to the **Smart Cities vision** by:  
+- Enhancing **last-mile urban food infrastructure**  
+- Supporting **small businesses and street vendors** with digital tools  
+- Encouraging **transparent and sustainable procurement practices**  
+- Reducing **logistics inefficiencies and food waste**  
+
+---
+
+## Tech Stack  
+
+- **Frontend:** Next.js, TypeScript, Tailwind CSS  
+- **Backend:** Node.js, Express  
+- **Database:** PostgreSQL with Prisma ORM  
+- **Authentication:** Clerk (JWT-based)  
+- **Deployment (planned):** Vercel (frontend), Railway/Render (backend)  
+
+---
+
+## Prototype Status  
+
+🚧 **Work in Progress**  
+- Core features (collectives, bulk order creation, bidding) are under development  
+- UI for vendor dashboards and bidding interface is partially functional  
+- Deployment is not live yet, local builds are being tested  
+
+
+
+## Future Scope  
+
+- AI-driven demand forecasting for vendors  
+- Smart contract–based bidding and supplier agreements  
+- Mobile-first experience for on-ground vendors  
+- Integration with digital payment systems and UPI  
+- Expansion to multiple cities and market clusters  
+
+---
+
+## Purpose  
+
+BoliBazaar reduces the economic burden on small urban vendors by providing access to **affordable, high-quality supplies through collective bargaining and transparent systems**.  
+It strengthens **local economies**, improves **vendor resilience**, and contributes to the broader goal of **sustainable and inclusive urban infrastructure**.  
+
+---
