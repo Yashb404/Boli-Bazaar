@@ -1,3 +1,6 @@
+
+//TODO: Test the logic once prisma is online
+
 import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
