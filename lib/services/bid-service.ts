@@ -67,16 +67,18 @@ export async function validateBid(
 
 	if (lowestBid) {
 		const lowestValue = Number(lowestBid.price_per_unit);
+		// Check minimum decrement requirement first (more specific error)
+		if (minNextBid !== null && price > minNextBid) {
+			throw new Error(
+				`Bid must be at least ₹${minBidDecrement} lower than the current lowest bid (₹${lowestValue.toFixed(2)})`
+			);
+		}
+		// Fallback: ensure bid is lower than current lowest
 		if (price >= lowestValue) {
-			throw new Error("Bid must be lower than the current lowest bid");
+			throw new Error(`Bid must be lower than the current lowest bid (₹${lowestValue.toFixed(2)})`);
 		}
 	}
-
-	if (minNextBid !== null && price > minNextBid) {
-		throw new Error(
-			`Bid must be at least ₹${minBidDecrement} lower than the current lowest bid`
-		);
-	}
+	// If no bids exist yet, any positive price is acceptable
 
 	return { order, supplier, lowestBid, minNextBid };
 }

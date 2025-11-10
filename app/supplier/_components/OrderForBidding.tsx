@@ -1,150 +1,273 @@
 'use client'
 import React from 'react'
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {Label} from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import {Input} from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import type { PooledOrderWithDetails } from '@/types/auction';
+import { toast } from 'sonner';
+
+// TODO: Replace with actual supplier ID from auth once auth is integrated
+const PLACEHOLDER_SUPPLIER_ID = 'supplier-1';
+
 export default function OrderForBidding(){
-      const [regionFilter, setRegionFilter] = useState('All');
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  
-  // Mock data for available orders
-  const availableOrders = [
-    {
-      id: 'ORD001',
-      itemName: 'Fresh Tomatoes',
-      category: 'Vegetables',
-      region: 'North',
-      quantity: '500 kg',
-      currentLowestBid: 2800,
-      yourLastBid: 2900,
-      deadline: '2025-07-28 14:00',
-      priceHistory: [3200, 3000, 2950, 2850, 2800]
-    },
-    {
-      id: 'ORD002',
-      itemName: 'Bananas',
-      category: 'Fruits',
-      region: 'South',
-      quantity: '300 kg',
-      currentLowestBid: 1200,
-      yourLastBid: null,
-      deadline: '2025-07-27 16:30',
-      priceHistory: [1500, 1400, 1350, 1250, 1200]
-    },
-    {
-      id: 'ORD003',
-      itemName: 'Milk Packets',
-      category: 'Dairy',
-      region: 'Central',
-      quantity: '200 units',
-      currentLowestBid: 800,
-      yourLastBid: 850,
-      deadline: '2025-07-29 10:00',
-      priceHistory: [1000, 950, 900, 850, 800]
+  const [areaFilter, setAreaFilter] = useState<string>('All');
+  const [categoryFilter, setCategoryFilter] = useState<string>('All');
+  const [orders, setOrders] = useState<PooledOrderWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [biddingOrders, setBiddingOrders] = useState<Record<number, { price: string; loading: boolean }>>({});
+
+  // Fetch orders from API
+  const fetchOrders = useCallback(async () => {
+    try {
+      setError(null);
+      const params = new URLSearchParams({ status: 'AUCTION_OPEN' });
+      if (areaFilter !== 'All' && !isNaN(parseInt(areaFilter))) {
+        params.append('area_group_id', areaFilter);
+      }
+
+      const response = await fetch(`/api/pooled-orders?${params.toString()}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setOrders(data.data.pooled_orders);
+      } else {
+        setError(data.message || 'Failed to fetch orders');
+      }
+    } catch (err) {
+      setError('Failed to fetch orders');
+      console.error('Error fetching orders:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
-  const filteredOrders = availableOrders.filter(order => {
-    const regionMatch = regionFilter === 'All' || order.region === regionFilter;
-    const categoryMatch = categoryFilter === 'All' || order.category === categoryFilter;
-    return regionMatch && categoryMatch;
+  }, [areaFilter]);
+
+  // Initial fetch and polling
+  useEffect(() => {
+    fetchOrders();
+    // Poll every 10 seconds for updates
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
+
+  // Handle bid submission
+  const handleBid = async (orderId: number) => {
+    const bidData = biddingOrders[orderId];
+    if (!bidData || !bidData.price) {
+      toast.error('Please enter a bid amount');
+      return;
+    }
+
+    const price = parseFloat(bidData.price);
+    if (isNaN(price) || price <= 0) {
+      toast.error('Please enter a valid bid amount');
+      return;
+    }
+
+    // Update loading state for this order
+    setBiddingOrders(prev => ({
+      ...prev,
+      [orderId]: { ...prev[orderId], loading: true }
+    }));
+
+    try {
+      const response = await fetch('/api/bids', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pooled_order_id: orderId,
+          supplier_id: PLACEHOLDER_SUPPLIER_ID,
+          price_per_unit: price,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Bid submitted successfully!');
+        // Clear bid input
+        setBiddingOrders(prev => ({
+          ...prev,
+          [orderId]: { price: '', loading: false }
+        }));
+        // Refresh orders to show updated lowest bid
+        fetchOrders();
+      } else {
+        toast.error(data.message || 'Failed to submit bid');
+      }
+    } catch (err) {
+      toast.error('Failed to submit bid');
+      console.error('Error submitting bid:', err);
+    } finally {
+      setBiddingOrders(prev => ({
+        ...prev,
+        [orderId]: { ...prev[orderId], loading: false }
+      }));
+    }
+  };
+
+  // Get current lowest bid for an order
+  const getCurrentLowestBid = (order: PooledOrderWithDetails): number | null => {
+    if (order.bids.length === 0) return null;
+    return order.bids[0].price_per_unit; // Bids are sorted by price (asc)
+  };
+
+  // Get minimum next bid (current lowest - 50)
+  const getMinNextBid = (order: PooledOrderWithDetails): number => {
+    const currentLowest = getCurrentLowestBid(order);
+    if (!currentLowest) return 0;
+    return Math.max(0, currentLowest - 50);
+  };
+
+  // Filter orders by category (if we had category data, for now just show all)
+  const filteredOrders = orders.filter(order => {
+    // TODO: Add category filtering when product categories are available
+    return true;
   });
 
+  // Get unique area groups for filter (with IDs)
+  const areaGroupsMap = new Map<number, string>();
+  orders.forEach(order => {
+    if (!areaGroupsMap.has(order.areaGroup.id)) {
+      areaGroupsMap.set(order.areaGroup.id, order.areaGroup.area_name);
+    }
+  });
+  const areaGroups = Array.from(areaGroupsMap.entries()).map(([id, name]) => ({ id, name }));
 
-  return (
-    
+  if (loading) {
+    return (
       <section className="mb-8">
         <h2 className="text-2xl font-semibold text-gray-800 mb-4 mt-8">
           Available Orders for Bidding
         </h2>
-        
-        {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-6">
-          <div>
-            <Label htmlFor="regionFilter">Region</Label>
-            <Select value={regionFilter} onValueChange={setRegionFilter}>
-              <SelectTrigger className="w-40 mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                <SelectItem value="North">North</SelectItem>
-                <SelectItem value="South">South</SelectItem>
-                <SelectItem value="East">East</SelectItem>
-                <SelectItem value="West">West</SelectItem>
-                <SelectItem value="Central">Central</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="categoryFilter">Category</Label>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-40 mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All</SelectItem>
-                <SelectItem value="Vegetables">Vegetables</SelectItem>
-                <SelectItem value="Fruits">Fruits</SelectItem>
-                <SelectItem value="Dairy">Dairy</SelectItem>
-                <SelectItem value="Baked Goods">Baked Goods</SelectItem>
-                <SelectItem value="Groceries">Groceries</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Order Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {filteredOrders.map((order) => (
-            <Card key={order.id} className="bg-gray-50 p-5 rounded-xl shadow-md border border-gray-200">
-              <CardContent className="p-0">
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                  {order.itemName}
-                </h3>
-                <div className="space-y-1 mb-3">
-                  <div className="text-gray-600 text-sm">
-                    Category: <span className="font-medium">{order.category}</span>
-                  </div>
-                  <div className="text-gray-600 text-sm">
-                    Region: <span className="font-medium">{order.region}</span>
-                  </div>
-                  <div className="text-gray-600 text-sm">
-                    Quantity: <span className="font-medium">{order.quantity}</span>
-                  </div>
-                </div>
-                
-                <div className="text-gray-700 font-bold text-lg mb-3">
-                  Current Lowest: ₹{order.currentLowestBid.toLocaleString()}
-                </div>
-                
-                {order.yourLastBid && (
-                  <div className="text-gray-600 text-sm mb-3">
-                    Your Last Bid: ₹{order.yourLastBid.toLocaleString()}
-                  </div>
-                )}
-                
-                <div className="text-gray-600 text-xs mb-3">
-                  Deadline: {order.deadline}
-                </div>
-                
-                <p>Price graph</p>
-                
-                <div className="flex gap-2">
-                  <Input
-                    placeholder={`Min ₹${order.currentLowestBid + 50}`}
-                    className="grow text-sm"
-                  />
-                  <Button className="bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 text-sm shadow-md">
-                    Bid
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <div className="text-center py-8">Loading orders...</div>
       </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="mb-8">
+        <h2 className="text-2xl font-semibold text-gray-800 mb-4 mt-8">
+          Available Orders for Bidding
+        </h2>
+        <div className="text-center py-8 text-red-600">{error}</div>
+      </section>
+    );
+  }
+
+
+  return (
+    <section className="mb-8">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-4 mt-8">
+        Available Orders for Bidding
+      </h2>
+      
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div>
+          <Label htmlFor="areaFilter">Area</Label>
+          <Select value={areaFilter} onValueChange={setAreaFilter}>
+            <SelectTrigger className="w-40 mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All Areas</SelectItem>
+              {areaGroups.map(area => (
+                <SelectItem key={area.id} value={area.id.toString()}>{area.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {/* TODO: Add category filter when product categories are available */}
+      </div>
+
+      {/* Order Cards */}
+      {filteredOrders.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No open auctions available at the moment.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {filteredOrders.map((order) => {
+            const currentLowest = getCurrentLowestBid(order);
+            const minNextBid = getMinNextBid(order);
+            const bidInput = biddingOrders[order.id] || { price: '', loading: false };
+            const deadline = new Date(order.auction_ends_at);
+            const isExpired = deadline < new Date();
+
+            return (
+              <Card key={order.id} className="bg-gray-50 p-5 rounded-xl shadow-md border border-gray-200">
+                <CardContent className="p-0">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                    {order.product.name}
+                  </h3>
+                  <div className="space-y-1 mb-3">
+                    <div className="text-gray-600 text-sm">
+                      Area: <span className="font-medium">{order.areaGroup.area_name}</span>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      City: <span className="font-medium">{order.areaGroup.city.name}</span>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      Quantity: <span className="font-medium">{order.total_quantity_committed} {order.product.unit}</span>
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      Bids: <span className="font-medium">{order.bids.length}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-gray-700 font-bold text-lg mb-3">
+                    {currentLowest ? (
+                      <>Current Lowest: ₹{currentLowest.toLocaleString()}</>
+                    ) : (
+                      <>No bids yet</>
+                    )}
+                  </div>
+                  
+                  <div className="text-gray-600 text-xs mb-3">
+                    Deadline: {deadline.toLocaleString()}
+                  </div>
+
+                  {isExpired ? (
+                    <div className="text-red-600 text-sm font-medium mb-3">
+                      Auction Closed
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder={currentLowest ? `Min ₹${minNextBid.toLocaleString()}` : 'Enter bid amount'}
+                        className="grow text-sm"
+                        value={bidInput.price}
+                        onChange={(e) => setBiddingOrders(prev => ({
+                          ...prev,
+                          [order.id]: { ...prev[order.id], price: e.target.value }
+                        }))}
+                        disabled={bidInput.loading}
+                        min={minNextBid}
+                        step="0.01"
+                      />
+                      <Button 
+                        className="bg-accent hover:bg-accent/90 text-accent-foreground px-4 py-2 text-sm shadow-md"
+                        onClick={() => handleBid(order.id)}
+                        disabled={bidInput.loading}
+                      >
+                        {bidInput.loading ? 'Bidding...' : 'Bid'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </section>
   )
 }
