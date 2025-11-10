@@ -8,14 +8,23 @@ import type { BidWithSupplier } from "@/types/auction";
 export async function POST(request: NextRequest) {
 	try {
 		// Parse request body - handle empty or invalid JSON
-		let body;
+		let body: any;
 		try {
-			body = await request.json();
-		} catch (parseError) {
-			return errorResponse("INVALID_JSON", "Invalid or empty JSON body", 400);
+			const text = await request.text();
+			if (!text || text.trim() === "") {
+				return errorResponse("INVALID_JSON", "Request body is empty", 400);
+			}
+			body = JSON.parse(text);
+		} catch (parseError: any) {
+			console.error("JSON parse error:", parseError);
+			return errorResponse("INVALID_JSON", "Invalid JSON body: " + (parseError?.message || "Parse error"), 400);
 		}
 
 		// Validate request body
+		if (!body || typeof body !== "object") {
+			return errorResponse("INVALID_JSON", "Request body must be a JSON object", 400);
+		}
+
 		const validatedData = submitBidSchema.parse(body);
 
 		// Submit bid using bid service (includes all validation)
