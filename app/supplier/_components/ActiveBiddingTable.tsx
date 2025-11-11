@@ -9,7 +9,7 @@ import type { SupplierBidStatus } from '@/types/auction';
 import { toast } from 'sonner';
 
 // TODO: Replace with actual supplier ID from auth once auth is integrated
-const PLACEHOLDER_SUPPLIER_ID = 'supplier-1';
+// PROTOTYPE: Fetch test supplier ID on mount
 
 type SupplierBid = {
   bid: {
@@ -48,16 +48,34 @@ type SupplierBid = {
 };
 
 const ActiveBiddingTable = () => {
+  const [supplierId, setSupplierId] = useState<string | null>(null);
   const [bids, setBids] = useState<SupplierBid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cancellingBids, setCancellingBids] = useState<Set<number>>(new Set());
 
+  // Fetch prototype supplier ID on mount
+  useEffect(() => {
+    fetch('/api/prototype/user-id?role=supplier')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user_id) {
+          setSupplierId(data.user_id);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to get supplier ID:', err);
+        setError('Failed to initialize');
+      });
+  }, []);
+
   // Fetch supplier bids from API
   const fetchBids = useCallback(async () => {
+    if (!supplierId) return;
+    
     try {
       setError(null);
-      const response = await fetch(`/api/suppliers/bids?supplier_id=${PLACEHOLDER_SUPPLIER_ID}`);
+      const response = await fetch(`/api/suppliers/bids?supplier_id=${supplierId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -71,15 +89,17 @@ const ActiveBiddingTable = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supplierId]);
 
-  // Initial fetch and polling
+  // Initial fetch and polling (only when supplierId is available)
   useEffect(() => {
-    fetchBids();
-    // Poll every 10 seconds for updates
-    const interval = setInterval(fetchBids, 10000);
-    return () => clearInterval(interval);
-  }, [fetchBids]);
+    if (supplierId) {
+      fetchBids();
+      // Poll every 10 seconds for updates
+      const interval = setInterval(fetchBids, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [fetchBids, supplierId]);
 
   // Handle bid cancellation
   const handleCancelBid = async (bidId: number) => {

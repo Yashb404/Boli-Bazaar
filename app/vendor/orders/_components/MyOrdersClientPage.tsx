@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { VendorOrderItem } from "@/types/auction";
 
 // TODO: Replace with actual vendor ID from auth once auth is integrated
-const PLACEHOLDER_VENDOR_ID = 'vendor-1';
+// PROTOTYPE: Fetch test vendor ID on mount
 
 // Helper to determine the display status and color for an order item
 const getDisplayStatus = (order: VendorOrderItem) => {
@@ -26,15 +26,33 @@ const getDisplayStatus = (order: VendorOrderItem) => {
 };
 
 export function MyOrdersClientPage({ initialOrders }: { initialOrders: VendorOrderItem[] }) {
+  const [vendorId, setVendorId] = useState<string | null>(null);
   const [orders, setOrders] = useState<VendorOrderItem[]>(initialOrders);
   const [loading, setLoading] = useState(initialOrders.length === 0);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch prototype vendor ID on mount
+  useEffect(() => {
+    fetch('/api/prototype/user-id?role=vendor')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user_id) {
+          setVendorId(data.user_id);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to get vendor ID:', err);
+        setError('Failed to initialize');
+      });
+  }, []);
+
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
+    if (!vendorId) return;
+    
     try {
       setError(null);
-      const response = await fetch(`/api/vendors/orders?vendor_id=${PLACEHOLDER_VENDOR_ID}`);
+      const response = await fetch(`/api/vendors/orders?vendor_id=${vendorId}`);
       const data = await response.json();
 
       if (data.success) {
@@ -48,7 +66,7 @@ export function MyOrdersClientPage({ initialOrders }: { initialOrders: VendorOrd
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [vendorId]);
 
   // Fetch orders on mount if initialOrders is empty
   useEffect(() => {

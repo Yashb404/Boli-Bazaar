@@ -10,15 +10,30 @@ import type { PooledOrderWithDetails } from '@/types/auction';
 import { toast } from 'sonner';
 
 // TODO: Replace with actual supplier ID from auth once auth is integrated
-const PLACEHOLDER_SUPPLIER_ID = 'supplier-1';
-
+// PROTOTYPE: Fetch test supplier ID on mount
 export default function OrderForBidding(){
+  const [supplierId, setSupplierId] = useState<string | null>(null);
   const [areaFilter, setAreaFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [orders, setOrders] = useState<PooledOrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [biddingOrders, setBiddingOrders] = useState<Record<number, { price: string; loading: boolean }>>({});
+
+  // Fetch prototype supplier ID on mount
+  useEffect(() => {
+    fetch('/api/prototype/user-id?role=supplier')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user_id) {
+          setSupplierId(data.user_id);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to get supplier ID:', err);
+        setError('Failed to initialize');
+      });
+  }, []);
 
   // Fetch orders from API
   const fetchOrders = useCallback(async () => {
@@ -56,6 +71,11 @@ export default function OrderForBidding(){
   // Handle bid submission
   const handleBid = async (orderId: number) => {
     const bidData = biddingOrders[orderId];
+    if (!supplierId) {
+      toast.error('Supplier ID not loaded yet');
+      return;
+    }
+
     if (!bidData || !bidData.price) {
       toast.error('Please enter a bid amount');
       return;
@@ -81,7 +101,7 @@ export default function OrderForBidding(){
         },
         body: JSON.stringify({
           pooled_order_id: orderId,
-          supplier_id: PLACEHOLDER_SUPPLIER_ID,
+          supplier_id: supplierId,
           price_per_unit: price,
         }),
       });
