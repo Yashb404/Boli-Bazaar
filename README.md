@@ -112,15 +112,6 @@ BoliBazaar contributes to the **Smart Cities vision** by:
 
 ---
 
-## Prototype Status  
-
-🚧 **Work in Progress**  
-- Core features (collectives, bulk order creation, bidding) are under development  
-- UI for vendor dashboards and bidding interface is partially functional  
-- Deployment is not live yet, local builds are being tested  
-
-
-
 ## Future Scope  
 
 - AI-driven demand forecasting for vendors  
