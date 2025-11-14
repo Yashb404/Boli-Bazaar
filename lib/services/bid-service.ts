@@ -1,4 +1,3 @@
-//TODO: Test the logic once prisma is online
 import prisma from "../prisma";
 import {
 	getCurrentLowestBid,

@@ -2,14 +2,27 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import RoleSelectionModal from "./RoleSelectionModal";
 import { Button } from "./ui/button";
 export default function Navbar() {
 
+  const router = useRouter();
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
 
   const handleRoleSelected = (role: 'vendor' | 'supplier') => {
+    // TODO: Replace this localStorage + direct navigation with real auth flow.
+    // - Start OAuth/login
+    // - On success, fetch user profile/role from backend
+    // - Redirect based on verified role and onboarding status
     localStorage.setItem('selectedRoleForSignup', role);
+
+    if (role === 'vendor') {
+      router.push('/vendor/dashboard');
+    } else {
+      router.push('/supplier/bidding');
+    }
+
     setIsRoleModalOpen(false); 
   };
 

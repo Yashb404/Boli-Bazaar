@@ -2,7 +2,6 @@
 //isAuctionActive(pooledOrder) - Check if auction is open and not expired
 //calculateMinNextBid(pooledOrderId, minDecrement) - Calculate minimum acceptable bid
 //awardAuction(pooledOrderId) - Find lowest bid and award order
-//TODO: Test the logic once prisma is online
 
 import prisma from "../prisma";
 
